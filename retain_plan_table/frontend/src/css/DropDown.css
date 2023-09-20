@@ -1,0 +1,28 @@
+.ant-select-selector{
+    background-color: #E81C0E !important;
+    color:white !important;
+    border-radius:40px !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word;
+    overflow: hidden;
+  }
+
+  .ant-select .ant-select-arrow{
+    color:white !important;
+    font-weight: 600;
+  }
+
+.ant-select-item-option:hover {
+        background-color: #FFEFEF !important;
+        color: #E81C0E !important;
+}
+
+.ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background-color: #FFEFEF !important;
+  color: #E81C0E !important;
+}
+
+.ant-select-selection-item{
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}

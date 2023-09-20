@@ -1,0 +1,50 @@
+table{
+  border-radius:4px;
+  font-family: sans-serif, Calibri, Gill Sans, Gill Sans MT,  Trebuchet MS;
+  background-color: white;
+}
+table, th, td {
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout:fixed;
+  min-width:40px;
+}
+
+table th{
+font-weight: 600;
+height:51px;
+background-color: #F4F4F4;
+font-size:12px ;
+font-weight: bold;
+}
+
+th ,td{
+  width:fit-content;
+  min-height:30px;
+  padding: 5px;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+
+td{
+  border-bottom: 2px solid #F4F4F4;
+}
+
+.input-field{
+width:85%;
+height:65%;
+border:none;
+text-align: center;
+outline:none;
+border-radius:7px;
+font-size: 12px;
+cursor: pointer;
+}
+
+.input-field:focus,
+
+.input-field:active{
+border:1px solid #dcdada;
+background-color: #F4F4F4;
+}
+

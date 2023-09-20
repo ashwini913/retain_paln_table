@@ -1,0 +1,9 @@
+.save-modal .ant-modal-footer .ant-btn:nth-child(2){
+    background-color:#E81C0E !important ;
+    border-color:#E81C0E;
+}
+
+.save-modal .ant-modal-footer .ant-btn:nth-child(1){
+    color:#E81C0E !important ;
+    border-color:#E81C0E;
+}
