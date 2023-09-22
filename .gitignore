@@ -1,0 +1,4 @@
+# production
+/build
+/dist
+/retail_plan_table.egg-info
