@@ -2,39 +2,32 @@ import React from "react";
 import { Select } from "antd";
 import { Streamlit } from "streamlit-component-lib";
 import "../css/DropDown.css";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 const DropDown = ({
-  scenarioList,
-  activeScenario,
-  packageName,
-  disabledBasedOnVersion,
-  setActiveScenario
+  promoMultiple,
+  fullData,
+  defaultVal,
+  setFullData,
+  index,
+  col
 }) => {
-  const options = scenarioList.map((sce) => {
-    let obj = {};
-    obj.label = sce;
-    obj.value = sce;
-    return obj;
-  });
-  const disable=disabledBasedOnVersion==="false"?true:false
+  const options=promoMultiple.map(p=>{
+    let obj={}
+    obj.value=p
+    obj.label=p
+    return obj
+  })
   const onSelectionChange = (e) => {
-    let active_scenario = activeScenario;
-    active_scenario[packageName] = e;
-    setActiveScenario(active_scenario);
-    let event_json = {
-      eventName: "Change",
-      packageName: packageName,
-      activeScenario: active_scenario
-    };
-    Streamlit.setComponentValue(event_json);
+    console.log("e",e)
+    let temp_data=fullData
+    temp_data[index][col]=e
+    setFullData(temp_data)
+    Streamlit.setComponentValue(fullData);
   };
   return (
-    <div>
-      <Select
-        suffixIcon={<ArrowDropDownIcon />}
-        defaultValue={activeScenario[packageName]}
-        disabled={disable}
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      <Select  style={{width:"80px",display: "flex", justifyContent: "center" }}
+        defaultValue={defaultVal===""?"-":defaultVal}
         options={options}
         onChange={(e) => onSelectionChange(e)}
       ></Select>

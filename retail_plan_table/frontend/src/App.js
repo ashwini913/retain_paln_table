@@ -1,35 +1,24 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import { Streamlit, withStreamlitConnection } from "streamlit-component-lib";
-import { Input, Checkbox } from "antd";
+import { Input, Checkbox, Tooltip } from "antd";
+import DropDown from "./components/DropDown";
+import retail_plan from "./images/retail_plan.png";
 
 function App(props) {
   useEffect(() => Streamlit.setFrameHeight());
   const shape = props.args.shape;
-  const data = props.args.data;
+  const invoice_prices = props.args.invoice_prices;
+  const sortedRows = ["New", "Current", "EDV"];
+  const data = props.args.data.sort(
+    (a, b) => sortedRows.indexOf(b.Category) - sortedRows.indexOf(a.Category)
+  );
+  const promo_multiple = props.args.price_multiple;
+  const allowancesDropSDownValues = ["All", "Promo"];
   const [fullData, setFullData] = useState(data);
-  const rowLengthForRefrence = data.Category;
-  const checkBoxHeaders = ["EDV", "Current", "New"];
-  useEffect(() => {
-    let temp_data = fullData;
-    checkBoxHeaders.forEach(
-      (h) =>
-        (temp_data[h] = [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false
-        ])
-    );
-    setFullData(temp_data);
-  }, []);
+  
   const legendMapping = [
+    "edv",
     "P1_A",
     "P1_B",
     "P1_C",
@@ -38,6 +27,17 @@ function App(props) {
     "P2_B",
     "P2_C",
     "P2_D"
+  ];
+  const InitialSelection = [
+    "P1_A",
+    "P1_B",
+    "P1_C",
+    "P1_D",
+    "P2_A",
+    "P2_B",
+    "P2_C",
+    "P2_D",
+    "Holiday"
   ];
   const backgroundColorsForLegends = {
     P1_A: "#27AF8D",
@@ -49,31 +49,20 @@ function App(props) {
     P2_C: "#494949",
     P2_D: "#494949"
   };
-  const columns = Object.keys(data);
-  const current = {
-    edv:false,
-    P1_A: false,
-    P1_B: false,
-    P1_C: false,
-    P1_D: false,
-    P2_A: false,
-    P2_B: false,
-    P2_C: false,
-    P2_D: false
-  };
-  const new_ = {
-    edv:false,
-    P1_A: false,
-    P1_B: false,
-    P1_C: false,
-    P1_D: false,
-    P2_A: false,
-    P2_B: false,
-    P2_C: false,
-    P2_D: false
-  };
-  const [currentChecked, setCurrentChecked] = useState(current);
-  const [newChecked, setNewChecked] = useState(new_);
+  // const columns = Object.keys(data);
+  const columns = [
+    "Category",
+    "P1_A",
+    "P1_B",
+    "P1_C",
+    "P1_D",
+    "P2_A",
+    "P2_B",
+    "P2_C",
+    "P2_D",
+    "Holiday",
+    "Total"
+  ];
   const isEditable = {
     "White Tag": true,
     "Retail Multiple": true,
@@ -94,69 +83,64 @@ function App(props) {
     Other: true,
     "Invoice Cost @ 100% Take Rate": true
   };
-  const onSelectionChange = (e, col, header, index) => {
+  const onSelectionChange = (e, category, col, index) => {
     let checked = e.target.checked;
     let temp_data = fullData;
-    if (header.toLowerCase() === "edv") {
-      checked ? (temp_data.EDV[index] = true) : (temp_data.EDV[index] = false);
-    }
-    if (header.toLowerCase() === "current") {
-      let checkedValues = currentChecked;
-      if (checked) {
-        checkedValues[col]=true;
-        temp_data.Current[index] = true;
-      } else if (!checked) {
-        checkedValues[col]=false;
-        temp_data.Current[index] = false;
+    let invoiceIndex = temp_data.findIndex((v) => v.Category === "Invoice");
+    if (checked) {
+      temp_data[index][col] = "true";
+      if (category.toLowerCase() === "current") {
+        temp_data[invoiceIndex][col] = invoice_prices[0];
+      } else if (category.toLowerCase() === "new") {
+        temp_data[invoiceIndex][col] = invoice_prices[1];
       }
-      setCurrentChecked(checkedValues);
-    } else if (header.toLowerCase() === "new") {
-      let checkedValues = newChecked;
-      if (checked) {
-        checkedValues[col]=true;
-        temp_data.New[index] = true;
-      } else if (!checked) {
-        checkedValues[col]=false;
-        temp_data.New[index] = false;
-      }
-      setNewChecked(checkedValues);
+
+      setFullData(temp_data);
+      Streamlit.setComponentValue(fullData);
+    } else if (!checked) {
+      temp_data[index][col] = "false";
+      temp_data[invoiceIndex][col] = invoice_prices[1];
+      setFullData(temp_data);
+      Streamlit.setComponentValue(fullData);
     }
-    setFullData(temp_data);
-    Streamlit.setComponentValue(fullData);
-    console.log("e===>", checked);
-    console.log("col===>", col);
-    console.log("header===>", header);
-    console.log("currentChecked==>", currentChecked);
-    console.log("newChecked==>", newChecked);
-    console.log("fullData==>", fullData);
+    console.log("category==>", category);
+    console.log("col==>", col);
   };
-  const currentOrNewDisable = (header,col) => {
-    // let lowerCaseHeader = header.toLowerCase();
-    // if (lowerCaseHeader === "edv") {
-    //   return false;
-    // } else if (lowerCaseHeader === "current") {
-    //   return newChecked.length > 0;
-    // } else {
-    //   return currentChecked.length > 0;
-    // }
-    if(header==="Current"){
-      return newChecked[col]
+  const currentOrNewDisable = (category, col) => {
+    if (category === "Current") {
+      let new_ = fullData.find((row) => row.Category === "New");
+      return new_[col] === "true" ? true : false;
+    } else if (category === "New") {
+      let new_ = fullData.find((row) => row.Category === "Current");
+      return new_[col] === "true" ? true : false;
+    } else if (category === "EDV") {
+      let edv_ = fullData.find((row) => row.Category === "EDV");
+      let isTrue = InitialSelection.find((v) => edv_[v] === "true");
+      if (isTrue) {
+        let res = edv_[col] === "true" ? false : true;
+        return res;
+      }
+      return false;
     }
-    else if(header==="New"){
-      return currentChecked[col]
-    }
+    console.log("apply disable feature");
+
+    return false;
   };
 
-  const onInputChange = (e, col, index) => {
-    let value = e.target.value;
-    let temp_data = fullData;
-    console.log("col===>", temp_data[col]);
-    temp_data[col][index] = value;
-    setFullData(temp_data);
-    console.log("e===>", e);
-    console.log("col===>", col);
-    console.log("index===>", index);
-    Streamlit.setComponentValue(fullData);
+  const displayText = [
+    "EDV",
+    "Current",
+    "New",
+    "Multiple",
+    "Allowances (All/Promo)"
+  ];
+  const onInputChange = (e, index, col) => {
+    if (e.key === "Enter") {
+      let value = e.target.value;
+      let temp_data = fullData;
+      temp_data[index][col] = value;
+      Streamlit.setComponentValue(fullData);
+    }
   };
   return (
     <div
@@ -172,9 +156,25 @@ function App(props) {
           marginBottom: "20px",
           fontSize: "14px",
           paddingBottom: "10px",
-          fontWeight: "bold"
+          fontWeight: "bold",
+          LineHeight: "18.48p",
+          display: "flex",
+          alignItems: "center"
         }}
-      ></div>
+      >
+        <img
+          src={retail_plan}
+          style={{ marginRight: "10px" }}
+          alt="retail_plan"
+        />
+        <span>Retail Plan</span>
+        <div className="legend_container">
+          <div className="legend shallow"></div>
+          <span>Shallow</span>
+          <div className="legend deep"></div>
+          <span>Deep</span>
+        </div>
+      </div>
       <div
         style={{
           width: shape["width"],
@@ -186,7 +186,10 @@ function App(props) {
           <thead>
             <tr>
               {columns.map((v, i) => (
-                <th className={v==="Category"?"category_label":""} key={v + i}>
+                <th
+                  className={v === "Category" ? "category_label" : ""}
+                  key={v + i}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -214,78 +217,97 @@ function App(props) {
             </tr>
           </thead>
           <tbody>
-            {checkBoxHeaders.map((header) => (
-              <tr key={header}>
-                <td
-                  style={{
-                    width: "60px",
-                    fontWeight: "bold",
-                    backgroundColor: checkBoxBgColor[header.toLowerCase()]
-                  }}
-                >
-                  {header}
-                </td>
-                {columns.slice(1).map((col, i) => (
-                  <td
-                    style={{
-                      backgroundColor:
-                        col === "Total"
-                          ? "#F0F5F8"
-                          : checkBoxBgColor[header.toLowerCase()]
-                    }}
-                    key={col + i}
-                  >
-                    {col !== "Total" && (
-                      <Checkbox
-                        disabled={currentOrNewDisable(header,col)}
-                        onChange={(e) => onSelectionChange(e, col, header, i)}
-                      ></Checkbox>
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {rowLengthForRefrence.map((v, i) => (
+            {fullData.map((row, i) => (
               <tr
                 style={{
+                  backgroundColor:
+                    i === fullData.length - 1 ? "#C2D5FE" : "white",
                   borderBottom:
-                    i === rowLengthForRefrence.length - 1
+                    i === fullData.length - 1
                       ? "3px solid #9DB3FF"
-                      : sectionsAvailable[v]
+                      : sectionsAvailable[row.Category]
                       ? "4px solid #9DB3FF"
                       : ""
                 }}
-                key={v + i}
+                key={row.Category + i}
               >
                 {columns.map((col, j) => (
                   <td
-                    className={
-                      col === "Total"
-                        ? "total_label"
-                        : col == "Category"
-                        ? "category_label"
-                        : i === rowLengthForRefrence.length - 1
-                        ? "last_row"
-                        : ""
-                    }
                     style={{
+                      fontWeight:
+                        sortedRows[row.Category] !== -1 && col === "Category"
+                          ? "bold"
+                          : "400",
                       backgroundColor:
                         col === "Total"
                           ? "#F0F5F8"
-                          : i === rowLengthForRefrence.length - 1
-                          ? "#C2D5FE"
-                          : "white"
+                          : isEditable[row.Category] && col !== "Category"
+                          ? "#F4F4F4"
+                          : sortedRows[row.Category] !== -1
+                          ? checkBoxBgColor[row.Category.toLowerCase()]
+                          : ""
                     }}
-                    key={col + i}
+                    key={col + i + j}
                   >
-                    {(!isEditable[v] || j === 0) && fullData[col][i]}
-                    {isEditable[v] && j !== 0 && col !== "Total" && (
-                      <Input
-                        className="input-field"
-                        defaultValue={data[col][i]}
-                        onChange={(e) => onInputChange(e, col, i)}
-                      ></Input>
-                    )}
+                    {sortedRows.indexOf(row.Category) !== -1 &&
+                      col !== "Total" &&
+                      col !== "Category" && (
+                        <Checkbox
+                          checked={row[col] === "false" ? false : true}
+                          disabled={currentOrNewDisable(row.Category, col)}
+                          onChange={(e) =>
+                            onSelectionChange(e, row.Category, col, i)
+                          }
+                        ></Checkbox>
+                      )}
+                    {(row.Category === "Multiple" ||
+                      row.Category === "Allowances (All/Promo)") &&
+                      col !== "Total" &&
+                      col !== "Category" && (
+                        <DropDown
+                          promoMultiple={
+                            row.Category === "Multiple"
+                              ? promo_multiple
+                              : allowancesDropSDownValues
+                          }
+                          fullData={fullData}
+                          defaultVal={row[col]}
+                          setFullData={setFullData}
+                          index={i}
+                          col={col}
+                        ></DropDown>
+                      )}
+                    {(displayText.indexOf(row.Category) === -1 ||
+                      col === "Total" ||
+                      col === "Category") &&
+                      (!isEditable[row.Category] || col === "Total") &&
+                      row[col]}
+                    {isEditable[row.Category] && col === "Category" && row[col]}
+                    {isEditable[row.Category] &&
+                      col !== "Total" &&
+                      col !== "Category" && (
+                        <Tooltip
+                          title={
+                            <div>
+                              Press enter to apply changes <br></br>
+                              <span
+                                style={{ fontSize: "12px", color: "#E81C0E",fontWeight:"600" }}
+                              >
+                                {row.Category === "Take Rate"
+                                  ? "Take rate should be in decimals"
+                                  : ""}
+                              </span>
+                            </div>
+                          }
+                        >
+                          <Input
+                            className="input-field"
+                            defaultValue={row[col]}
+                            onKeyDown={(e) => onInputChange(e, i, col)}
+                          ></Input>
+                        </Tooltip>
+                      )}
+                      
                   </td>
                 ))}
               </tr>
