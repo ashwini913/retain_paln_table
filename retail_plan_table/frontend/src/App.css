@@ -19,11 +19,13 @@ font-weight: bold;
 }
 
 th ,td{
-  width:45px;
+  width:36px;
   min-height:39px;
   padding: 5px;
+  padding-right: 0px;
   overflow-wrap: break-word;
   text-align: center;
+  align-self: center;
 }
 
 td{
@@ -32,12 +34,13 @@ td{
 }
 
 .input-field{
-width:48px;
+width:36px;
 height:26px;
 text-align: center;
 border-radius:7px;
 font-size: 12px;
 cursor: pointer;
+padding:0;
 }
 
 .input-field:focus,
@@ -49,7 +52,7 @@ background-color: #F4F4F4;
 
 .category_label{
   font-weight:bold;
-  width:80px
+  width:60px
 }
 
 .total_label{
@@ -82,4 +85,10 @@ background-color: #F4F4F4;
  margin-right: 20px;
  font-size: 11px;
  font-weight: 500;
+}
+
+.guardrall-gap{
+  width:2px;
+  background-color: white;
+  border-bottom: none;
 }

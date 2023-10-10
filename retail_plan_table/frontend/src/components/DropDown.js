@@ -25,11 +25,12 @@ const DropDown = ({
     Streamlit.setComponentValue(fullData);
   };
   return (
-    <div style={{ display: "flex", justifyContent: "center" }}>
-      <Select  style={{width:"80px",display: "flex", justifyContent: "center" }}
+    <div style={{display:"flex",justifyContent:"center"}}>
+      <Select style={{width:"200px",display:"flex",justifyContent:"center"}}
         defaultValue={defaultVal===""?"-":defaultVal}
         options={options}
         onChange={(e) => onSelectionChange(e)}
+        popupMatchSelectWidth={false}
       ></Select>
     </div>
   );

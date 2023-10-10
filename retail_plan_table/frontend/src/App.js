@@ -4,6 +4,7 @@ import { Streamlit, withStreamlitConnection } from "streamlit-component-lib";
 import { Input, Checkbox, Tooltip } from "antd";
 import DropDown from "./components/DropDown";
 import retail_plan from "./images/retail_plan.png";
+import DownloadIcon from "@mui/icons-material/Download";
 
 function App(props) {
   useEffect(() => Streamlit.setFrameHeight());
@@ -16,7 +17,7 @@ function App(props) {
   const promo_multiple = props.args.price_multiple;
   const allowancesDropSDownValues = ["All", "Promo"];
   const [fullData, setFullData] = useState(data);
-  
+
   const legendMapping = [
     "edv",
     "P1_A",
@@ -72,6 +73,23 @@ function App(props) {
     "Trade Allowance per case": true,
     Other: true
   };
+  const percentOrDollar = {
+    "white tag": "($)",
+    "retail multiple": "($)",
+    price: "($)",
+    multiple: "($)",
+    "take rate": "(%)",
+    "discount vs edv": "(%)",
+    "effective retail": "($)",
+    "trade allowance per case": "($)",
+    other: "($)",
+    invoice: "($)",
+    "net invoice cost": "($)",
+    "net cost(unit)": "($)",
+    "invoice cost @ 100% take rate": "($)",
+    "customer margin ($/unit)": "($)",
+    "customer margin": "(%)"
+  };
   const checkBoxBgColor = {
     current: "#E2ECFF",
     new: "#FFEFEF",
@@ -83,6 +101,54 @@ function App(props) {
     Other: true,
     "Invoice Cost @ 100% Take Rate": true
   };
+
+  const convertToCSV=(objArray)=>{
+    var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+    var str = '';
+
+    for (var i = 0; i < array.length; i++) {
+        var line = '';
+        for (var index in array[i]) {
+            if (line != '') line += ','
+
+            line += array[i][index];
+        }
+
+        str += line + '\r\n';
+    }
+    console.log("str",str)
+    return str;
+  }
+
+  function exportCSVFile(headers, items, fileTitle) {
+    if (headers) {
+        items.unshift(headers);
+    }
+
+    // Convert Object to JSON
+    var jsonObject = JSON.stringify(items);
+
+    var csv = convertToCSV(jsonObject);
+
+    var exportedFilenmae = fileTitle + '.csv' || 'export.csv';
+
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    if (navigator.msSaveBlob) { // IE 10+
+        navigator.msSaveBlob(blob, exportedFilenmae);
+    } else {
+        var link = document.createElement("a");
+        if (link.download !== undefined) { // feature detection
+            // Browsers that support HTML5 download attribute
+            var url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", exportedFilenmae);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+}
   const onSelectionChange = (e, category, col, index) => {
     let checked = e.target.checked;
     let temp_data = fullData;
@@ -173,7 +239,11 @@ function App(props) {
           <span>Shallow</span>
           <div className="legend deep"></div>
           <span>Deep</span>
+          <Tooltip title="Download">
+          <DownloadIcon onClick={()=>exportCSVFile(columns ,fullData, 'retail_plan')} style={{color:"#E81C0E"}}/>
+        </Tooltip>
         </div>
+
       </div>
       <div
         style={{
@@ -214,6 +284,8 @@ function App(props) {
                   </div>
                 </th>
               ))}
+              <th className="guardrall-gap"></th>
+              <th style={{ width: "45px" }}>Guardrall</th>
             </tr>
           </thead>
           <tbody>
@@ -221,13 +293,7 @@ function App(props) {
               <tr
                 style={{
                   backgroundColor:
-                    i === fullData.length - 1 ? "#C2D5FE" : "white",
-                  borderBottom:
-                    i === fullData.length - 1
-                      ? "3px solid #9DB3FF"
-                      : sectionsAvailable[row.Category]
-                      ? "4px solid #9DB3FF"
-                      : ""
+                    i === fullData.length - 1 ? "#C2D5FE" : "white"
                 }}
                 key={row.Category + i}
               >
@@ -245,6 +311,12 @@ function App(props) {
                           ? "#F4F4F4"
                           : sortedRows[row.Category] !== -1
                           ? checkBoxBgColor[row.Category.toLowerCase()]
+                          : "",
+                      borderBottom:
+                        i === fullData.length - 1
+                          ? "3px solid #9DB3FF"
+                          : sectionsAvailable[row.Category]
+                          ? "4px solid #9DB3FF"
                           : ""
                     }}
                     key={col + i + j}
@@ -282,6 +354,9 @@ function App(props) {
                       col === "Category") &&
                       (!isEditable[row.Category] || col === "Total") &&
                       row[col]}
+                    {!isEditable[row.Category] &&
+                      col === "Category" &&
+                      percentOrDollar[row[col].toLowerCase()]}
                     {isEditable[row.Category] && col === "Category" && row[col]}
                     {isEditable[row.Category] &&
                       col !== "Total" &&
@@ -291,7 +366,11 @@ function App(props) {
                             <div>
                               Press enter to apply changes <br></br>
                               <span
-                                style={{ fontSize: "12px", color: "#E81C0E",fontWeight:"600" }}
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#E81C0E",
+                                  fontWeight: "600"
+                                }}
                               >
                                 {row.Category === "Take Rate"
                                   ? "Take rate should be in decimals"
@@ -307,9 +386,21 @@ function App(props) {
                           ></Input>
                         </Tooltip>
                       )}
-                      
+                    {isEditable[row.Category] &&
+                      col === "Category" &&
+                      percentOrDollar[row[col].toLowerCase()]}
                   </td>
                 ))}
+                <td className="guardrall-gap"></td>
+                <td
+                  style={{
+                    backgroundColor: "white",
+                    borderBottom: sectionsAvailable[row.Category]
+                      ? "4px solid #9DB3FF"
+                      : "",
+                    width: "45px"
+                  }}
+                ></td>
               </tr>
             ))}
           </tbody>
