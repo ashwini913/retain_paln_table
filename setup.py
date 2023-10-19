@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="retail_plan_table",
-    version="5.1.0",
+    version="5.6.0",
     author="",
     author_email="",
     description="",

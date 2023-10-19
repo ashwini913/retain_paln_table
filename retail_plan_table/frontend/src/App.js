@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import { Streamlit, withStreamlitConnection } from "streamlit-component-lib";
-import { Input, Checkbox, Tooltip } from "antd";
+import { Input, Checkbox, Tooltip, Button } from "antd";
 import DropDown from "./components/DropDown";
 import retail_plan from "./images/retail_plan.png";
 import DownloadIcon from "@mui/icons-material/Download";
+import UpdateIcon from "@mui/icons-material/Update";
 
 function App(props) {
   useEffect(() => Streamlit.setFrameHeight());
   const shape = props.args.shape;
+  const guardrail = props.args.py_guardrail;
   const invoice_prices = props.args.invoice_prices;
   const sortedRows = ["New", "Current", "EDV"];
   const data = props.args.data.sort(
@@ -17,7 +19,10 @@ function App(props) {
   const promo_multiple = props.args.price_multiple;
   const allowancesDropSDownValues = ["All", "Promo"];
   const [fullData, setFullData] = useState(data);
-
+  const [edvCheckbox, setEdvCheckbox] = useState({
+    current: { col: "", checked: false },
+    new: { col: "", checked: false }
+  });
   const legendMapping = [
     "edv",
     "P1_A",
@@ -77,7 +82,7 @@ function App(props) {
     "white tag": "($)",
     "retail multiple": "($)",
     price: "($)",
-    multiple: "($)",
+    multiple: "",
     "take rate": "(%)",
     "discount vs edv": "(%)",
     "effective retail": "($)",
@@ -85,7 +90,7 @@ function App(props) {
     other: "($)",
     invoice: "($)",
     "net invoice cost": "($)",
-    "net cost(unit)": "($)",
+    "net unit cost": "($)",
     "invoice cost @ 100% take rate": "($)",
     "customer margin ($/unit)": "($)",
     "customer margin": "(%)"
@@ -102,27 +107,27 @@ function App(props) {
     "Invoice Cost @ 100% Take Rate": true
   };
 
-  const convertToCSV=(objArray)=>{
-    var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
-    var str = '';
+  const convertToCSV = (objArray) => {
+    var array = typeof objArray != "object" ? JSON.parse(objArray) : objArray;
+    var str = "";
 
     for (var i = 0; i < array.length; i++) {
-        var line = '';
-        for (var index in array[i]) {
-            if (line != '') line += ','
+      var line = "";
+      for (var index in array[i]) {
+        if (line !== "") line += ",";
 
-            line += array[i][index];
-        }
+        line += array[i][index];
+      }
 
-        str += line + '\r\n';
+      str += line + "\r\n";
     }
-    console.log("str",str)
+    console.log("str", str);
     return str;
-  }
+  };
 
   function exportCSVFile(headers, items, fileTitle) {
     if (headers) {
-        items.unshift(headers);
+      items.unshift(headers);
     }
 
     // Convert Object to JSON
@@ -130,37 +135,61 @@ function App(props) {
 
     var csv = convertToCSV(jsonObject);
 
-    var exportedFilenmae = fileTitle + '.csv' || 'export.csv';
+    var exportedFilenmae = fileTitle + ".csv" || "export.csv";
 
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    if (navigator.msSaveBlob) { // IE 10+
-        navigator.msSaveBlob(blob, exportedFilenmae);
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    if (navigator.msSaveBlob) {
+      // IE 10+
+      navigator.msSaveBlob(blob, exportedFilenmae);
     } else {
-        var link = document.createElement("a");
-        if (link.download !== undefined) { // feature detection
-            // Browsers that support HTML5 download attribute
-            var url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", exportedFilenmae);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+      var link = document.createElement("a");
+      if (link.download !== undefined) {
+        // feature detection
+        // Browsers that support HTML5 download attribute
+        var url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", exportedFilenmae);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
-}
+  }
+
+  useEffect(() => {
+    let temp_data = [...fullData];
+    setFullData(temp_data.filter((v) => v.Category !== "New"));
+  }, []);
+
   const onSelectionChange = (e, category, col, index) => {
     let checked = e.target.checked;
     let temp_data = fullData;
     let invoiceIndex = temp_data.findIndex((v) => v.Category === "Invoice");
+    let current_ = fullData.find((row) => row.Category === "Current");
+    let edv_ = fullData.find((row) => row.Category === "EDV");
+    let isEdvCheckedForCurrent = InitialSelection.find(
+      (v) => current_[v] === "true" && edv_[v] === "true"
+    );
+    let isEdvCheckedForNew = InitialSelection.find(
+      (v) => current_[v] === "false" && edv_[v] === "true"
+    );
     if (checked) {
-      temp_data[index][col] = "true";
+      if (category === "EDV") {
+        if (isEdvCheckedForCurrent && current_[col] === "true") {
+          temp_data[index][isEdvCheckedForCurrent] = "false";
+        } else if (isEdvCheckedForNew && current_[col] === "false") {
+          temp_data[index][isEdvCheckedForNew] = "false";
+        }
+        temp_data[index][col] = "true";
+      } else {
+        temp_data[index][col] = "true";
+      }
       if (category.toLowerCase() === "current") {
         temp_data[invoiceIndex][col] = invoice_prices[0];
       } else if (category.toLowerCase() === "new") {
         temp_data[invoiceIndex][col] = invoice_prices[1];
       }
-
       setFullData(temp_data);
       Streamlit.setComponentValue(fullData);
     } else if (!checked) {
@@ -181,12 +210,19 @@ function App(props) {
       return new_[col] === "true" ? true : false;
     } else if (category === "EDV") {
       let edv_ = fullData.find((row) => row.Category === "EDV");
+      let current_ = fullData.find((row) => row.Category === "Current");
+      let new_ = fullData.find((row) => row.Category === "Current");
       let isTrue = InitialSelection.find((v) => edv_[v] === "true");
-      if (isTrue) {
-        let res = edv_[col] === "true" ? false : true;
-        return res;
+      if (edvCheckbox.new.checked) {
+        console.log("edvCheckbox.new", edvCheckbox.new);
+        if (edvCheckbox.new.col === col) {
+          return false;
+        } else {
+          return true;
+        }
+      } else {
+        return false;
       }
-      return false;
     }
     console.log("apply disable feature");
 
@@ -202,12 +238,17 @@ function App(props) {
   ];
   const onInputChange = (e, index, col) => {
     if (e.key === "Enter") {
-      let value = e.target.value;
-      let temp_data = fullData;
-      temp_data[index][col] = value;
-      Streamlit.setComponentValue(fullData);
+    let value = e.target.value;
+    let temp_data = fullData;
+    temp_data[index][col] = value;
+    Streamlit.setComponentValue(fullData);
     }
   };
+
+  // const onSave = () => {
+  //   console.log("on save");
+  //   Streamlit.setComponentValue(fullData);
+  // };
   return (
     <div
       style={{
@@ -239,11 +280,34 @@ function App(props) {
           <span>Shallow</span>
           <div className="legend deep"></div>
           <span>Deep</span>
+          {/* <Button
+            style={{
+              display: "flex",
+              justifyContent:"center",
+              alignItems: "center",
+              backgroundColor: "#E81C0E",
+              width:"45px",
+              fontSize:"12px",
+              height:"28px",
+              color:"white"
+            }}
+            onClick={onSave}
+          >
+            Save
+          </Button> */}
+          {/* <Tooltip title="Update">
+            <UpdateIcon
+              onClick={onSave}
+              style={{ color: "#E81C0E", marginRight: "20px" }}
+            />
+          </Tooltip> */}
           <Tooltip title="Download">
-          <DownloadIcon onClick={()=>exportCSVFile(columns ,fullData, 'retail_plan')} style={{color:"#E81C0E"}}/>
-        </Tooltip>
+            <DownloadIcon
+              onClick={() => exportCSVFile(columns, fullData, "retail_plan")}
+              style={{ color: "#E81C0E" }}
+            />
+          </Tooltip>
         </div>
-
       </div>
       <div
         style={{
@@ -285,7 +349,7 @@ function App(props) {
                 </th>
               ))}
               <th className="guardrall-gap"></th>
-              <th style={{ width: "45px" }}>Guardrall</th>
+              <th style={{ width: "45px" }}>Guardrail</th>
             </tr>
           </thead>
           <tbody>
@@ -326,7 +390,7 @@ function App(props) {
                       col !== "Category" && (
                         <Checkbox
                           checked={row[col] === "false" ? false : true}
-                          disabled={currentOrNewDisable(row.Category, col)}
+                          // disabled={currentOrNewDisable(row.Category, col)}
                           onChange={(e) =>
                             onSelectionChange(e, row.Category, col, i)
                           }
@@ -380,6 +444,16 @@ function App(props) {
                           }
                         >
                           <Input
+                            style={{
+                              color:
+                                row.Category.toLowerCase() ===
+                                  "retail multiple" &&
+                                row[col] < guardrail.Guadrail
+                                  ? "#E81C0E"
+                                  : "",
+                                  fontWeight: row.Category.toLowerCase()==="retail multiple" &&
+                                  row[col] < guardrail.Guadrail ?"bold":"400"
+                            }}
                             className="input-field"
                             defaultValue={row[col]}
                             onKeyDown={(e) => onInputChange(e, i, col)}
@@ -394,13 +468,39 @@ function App(props) {
                 <td className="guardrall-gap"></td>
                 <td
                   style={{
-                    backgroundColor: "white",
-                    borderBottom: sectionsAvailable[row.Category]
-                      ? "4px solid #9DB3FF"
-                      : "",
-                    width: "45px"
+                    backgroundColor:
+                      row.Category.toLowerCase() === "customer margin ($/unit)"
+                        ? "#F4F4F4"
+                        : "white",
+                    borderBottom:
+                      sectionsAvailable[row.Category] &&
+                      row.Category.toLowerCase() !==
+                        "invoice cost @ 100% take rate"
+                        ? "4px solid #9DB3FF"
+                        : row.Category.toLowerCase() ===
+                          "invoice cost @ 100% take rate"
+                        ? "4px solid #E6ECF0"
+                        : "",
+                    width: "45px",
+                    fontWeight:
+                      row.Category.toLowerCase() !==
+                      "invoice cost @ 100% take rate"
+                        ? "600"
+                        : ""
                   }}
-                ></td>
+                >
+                  {row.Category.toLowerCase() === "retail multiple"
+                    ? guardrail.Guadrail
+                      ? "$" + guardrail.Guadrail
+                      : ""
+                    : row.Category.toLowerCase() === "customer margin ($/unit)"
+                    ? "PY Margin"
+                    : row.Category.toLowerCase() === "customer margin %"
+                    ? guardrail.py_margin
+                      ? guardrail.py_margin + "%"
+                      : ""
+                    : ""}
+                </td>
               </tr>
             ))}
           </tbody>
