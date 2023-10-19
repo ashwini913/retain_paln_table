@@ -19,10 +19,6 @@ function App(props) {
   const promo_multiple = props.args.price_multiple;
   const allowancesDropSDownValues = ["All", "Promo"];
   const [fullData, setFullData] = useState(data);
-  const [edvCheckbox, setEdvCheckbox] = useState({
-    current: { col: "", checked: false },
-    new: { col: "", checked: false }
-  });
   const legendMapping = [
     "edv",
     "P1_A",
@@ -55,7 +51,6 @@ function App(props) {
     P2_C: "#494949",
     P2_D: "#494949"
   };
-  // const columns = Object.keys(data);
   const columns = [
     "Category",
     "P1_A",
@@ -213,20 +208,7 @@ function App(props) {
       let current_ = fullData.find((row) => row.Category === "Current");
       let new_ = fullData.find((row) => row.Category === "Current");
       let isTrue = InitialSelection.find((v) => edv_[v] === "true");
-      if (edvCheckbox.new.checked) {
-        console.log("edvCheckbox.new", edvCheckbox.new);
-        if (edvCheckbox.new.col === col) {
-          return false;
-        } else {
-          return true;
-        }
-      } else {
-        return false;
-      }
     }
-    console.log("apply disable feature");
-
-    return false;
   };
 
   const displayText = [
